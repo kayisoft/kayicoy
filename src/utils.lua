@@ -66,7 +66,7 @@ end
 -- Parse Request ID
 function utils.parse_request_id ()
    local match, err = ngx.re.match(
-      ngx.var.request_uri, "/consent-requests/(.*$)", "jo"
+      ngx.var.request_uri, "/parental-consent-requests/(.*$)", "jo"
    )
    if match then return match[1] end
    if err then
