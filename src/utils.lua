@@ -43,11 +43,15 @@ function utils.respond (status, message)
    ngx.exit(status)
 end
 
+local respond = utils.respond   -- alias for use in this file
+
 --------------------------------------------------------------------------------
 -- Simple Request Rejection Function
 function utils.reject (status, message)
-   utils.respond(status, {message = message})
+   respond(status, {message = message})
 end
+
+local reject = utils.reject   -- alias for use in this file
 
 --------------------------------------------------------------------------------
 -- Parse & Validate Request Body
@@ -71,7 +75,7 @@ function utils.parse_request_id ()
    if match then return match[1] end
    if err then
       ngx.log(ngx.STDERR, err)
-      utils.reject(500, "Internal Server Error")
+      reject(500, "Internal Server Error")
    end
 
    return nil
@@ -147,7 +151,7 @@ Please Consent.
    if not ok then
       ngx.log(ngx.STDERR, "FAILED TO SEND EMAIL: ",
               stdout, stderr, reason, status)
-      utils.reject(500, "Internal Server Error")
+      reject(500, "Internal Server Error")
    end
 end
 
