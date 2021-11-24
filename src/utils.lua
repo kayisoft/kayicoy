@@ -52,7 +52,7 @@ end
 --------------------------------------------------------------------------------
 -- Parse & Validate Request Body
 function utils.parse_request_body ()
-   if ngx.req.get_headers()["Content-Type"] ~= "application/json" then
+   if not ngx.req.get_headers()["Content-Type"]:match("application/json") then
       reject(415, "Unsupported Media Type: Only `application/json` is accepted")
    end
 
