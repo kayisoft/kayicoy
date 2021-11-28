@@ -44,15 +44,21 @@ local method = ngx.req.get_method()
 -- Response: 201 { "id": "jEAlpofWeeRY" }
 --
 function create_consent_request ()
-   local data = utils.parse_request_body()
+   local body = utils.parse_request_body()
    local id = utils.generate_request_id()
-   local email = data.email
+   local email = body.email
+   local service = body.service
 
    local valid_email_p, validation_error = utils.validate_email(email)
    if not valid_email_p then
       reject(422, validation_error
              and ("Invalid Email: "..email.." "..validation_error)
              or "Missing Email")
+   end
+
+   if not service == 'connected' then
+      reject(422, "Invalid Service: ("..service..
+             ") Only `connected' is allowed")
    end
 
    utils.send_consent_request_email(email)
