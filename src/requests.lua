@@ -43,7 +43,7 @@ local method = ngx.req.get_method()
 -- Body: { "email": "test@example.com" }
 -- Response: 201 { "id": "jEAlpofWeeRY" }
 --
-function create_consent_request ()
+local function create_consent_request ()
    local body = utils.parse_request_body()
    local id = utils.generate_request_id()
    local email = body.email
@@ -74,7 +74,7 @@ end
 -- GET /api/parental-consent-requests/{id}
 -- Response: 200 { "id": "jEAlpofWeeRY", "agreed": false }
 --
-function get_consent_request()
+local function get_consent_request()
    local id = utils.parse_request_id()
    if not id or not utils.validate_request_id(id) then
       reject(404, "Consent Request Not Found")
