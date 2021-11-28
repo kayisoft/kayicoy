@@ -51,7 +51,25 @@ function utils.reject (status, message)
    respond(status, {message = message})
 end
 
-local reject = utils.reject   -- alias for use in this file
+local reject = utils.reject     -- alias for use in this file
+
+--------------------------------------------------------------------------------
+-- Simple Logging Function
+function utils.log (...)
+   if ngx then return ngx.log(ngx.NOTICE, ...)
+   else return print(level, ...) end
+end
+
+local log = utils.log           -- alias for use in this file
+
+--------------------------------------------------------------------------------
+-- Simple Error Logging Function
+function utils.logerr (...)
+   if ngx then return ngx.log(ngx.ERR, ...)
+   else return print(level, ...) end
+end
+
+local logerr = utils.logerr           -- alias for use in this file
 
 --------------------------------------------------------------------------------
 -- Parse & Validate Request Body
@@ -74,7 +92,7 @@ function utils.parse_request_id ()
    )
    if match then return match[1] end
    if err then
-      ngx.log(ngx.STDERR, err)
+      logerr(err)
       reject(500, "Internal Server Error")
    end
 
@@ -149,8 +167,7 @@ Please Consent.
       shell.run(command, stdin, timeout, max_size)
 
    if not ok then
-      ngx.log(ngx.STDERR, "FAILED TO SEND EMAIL: ",
-              stdout, stderr, reason, status)
+      logerr("FAILED TO SEND EMAIL: ", stdout, stderr, reason, status)
       reject(500, "Internal Server Error")
    end
 end
