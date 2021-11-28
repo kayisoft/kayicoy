@@ -27,6 +27,7 @@
 
 local ngx = require "ngx"
 local utils = require "src/utils"
+local data = require "src/data"
 
 local respond = utils.respond
 local reject = utils.reject
@@ -61,6 +62,7 @@ local function create_consent_request ()
              ") Only `connected' is allowed")
    end
 
+   data:insert_consent_request(id, service, email, false)
    utils.send_consent_request_email(email)
    respond(201, {id = id})
 end
@@ -80,8 +82,12 @@ local function get_consent_request()
       reject(404, "Consent Request Not Found")
    end
    local id = id:upper()
+   local record = data:get_consent_request(id)
+   if not record then reject(404, "Consent Request Not Found") end
 
-   respond(200, {id = id, agreed = false})
+   respond(200, { id = record.id,
+                  service = record.service,
+                  agreed = record.agreed })
 end
 
 --------------------------------------------------------------------------------
