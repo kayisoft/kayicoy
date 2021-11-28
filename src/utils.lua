@@ -32,7 +32,7 @@ local shell = require "resty.shell"
 local cjson = require "cjson.safe"
 cjson.decode_invalid_numbers(false)
 
-local config = kayicoy_config   -- alias global config file
+local config = require "secrets/config"
 
 --------------------------------------------------------------------------------
 -- Simple Request Response Function
