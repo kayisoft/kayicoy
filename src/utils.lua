@@ -117,6 +117,13 @@ function utils.generate_request_id ()
 end
 
 --------------------------------------------------------------------------------
+-- Convert SQLite Numbers to Booleans
+--
+-- SQLite uses numbers.
+--
+function utils.num_to_bool (num) return tonumber(num) ~= 0 and true or false end
+
+--------------------------------------------------------------------------------
 -- Quote Shell Arguments
 --
 -- It escapes single quotes by replacing them with '\'', then wraps the

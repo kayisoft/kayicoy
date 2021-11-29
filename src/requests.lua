@@ -86,9 +86,8 @@ local function get_consent_request()
    local record = data.get_consent_request(id)
    if not record then reject(404, "Consent Request Not Found") end
 
-   respond(200, { id = record.id,
-                  service = record.service,
-                  agreed = record.agreed })
+   respond(200, { id = record.id, service = record.service,
+                  agreed = utils.num_to_bool(record.agreed) })
 end
 
 --------------------------------------------------------------------------------
