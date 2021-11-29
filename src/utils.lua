@@ -134,7 +134,7 @@ end
 -- Send an Email requesting consent to `to_email` using cURL in a
 -- sub-process non-blocking to NGINX.
 --
-function utils.send_consent_request_email (to_email)
+function utils.send_consent_request_email (to_email, request_id, service)
    local q = utils.quote_shell_arg
    local curl_command = {
       "curl", "--silent", "--ssl-reqd", "--url", q(config.smtp_server),
@@ -147,12 +147,20 @@ function utils.send_consent_request_email (to_email)
    local message = {
       "From: ", config.sender_name, " ", "<",config.sender_email,">", "\n",
       "To: ", "<",to_email,">", "\n",
-      "Subject: ", "Kayisoft Consent Request", "\n",
+      "Subject: ", "Kayisoft Consent Request ["..request_id.."]", "\n",
       "Date: ", ngx.utctime(), "\n\n", [[
-Dear User,
-Welcome to Connected.
-This is a test email.
-Please Consent.
+Dear Kayisoft User,
+
+Your child attempted to use our service ]]..service..[[.
+This Service requires parental consent, as it collects various
+personal information about the child. If you consent to allowing
+your child to use our service, then please reply to this Email.
+
+Please do not modify the subject (i.e. title) of this Email. The
+ID between two brackets [ID] is required to make sure we serve
+your request correctly. Otherwise your child's login may fail.
+
+If you refuse to give consent, then please ignore this Email.
 ]]
    }
 

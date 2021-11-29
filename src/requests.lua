@@ -36,13 +36,14 @@ local method = ngx.req.get_method()
 --------------------------------------------------------------------------------
 -- POST New Consent Request
 --
--- Create a new consent request. This will trigger an Email to be sent to
--- the user's supplied email, and will respond to the caller with the new
--- consent request ID. Save the ID for later querying.
--- 
+-- Create a new consent request for a specific `service'. This will trigger
+-- an Email to be sent to the user's supplied email, and will respond to the
+-- caller with the new consent request ID. Save the ID for later querying.
+-- Currently, the only accepted service is `connected'.
+--
 -- POST /api/parental-consent-requests
--- Body: { "email": "test@example.com" }
--- Response: 201 { "id": "jEAlpofWeeRY" }
+-- Body: { "email": "test@example.com", "service": "connected" }
+-- Response: 201 { "id": "A82B88BA476DAADE" }
 --
 local function create_consent_request ()
    local body = utils.parse_request_body()
@@ -62,8 +63,8 @@ local function create_consent_request ()
              ") Only `connected' is allowed")
    end
 
-   utils.send_consent_request_email(email)
    data.insert_consent_request(id, service, email)
+   utils.send_consent_request_email(email, id, service)
    respond(201, {id = id})
 end
 
