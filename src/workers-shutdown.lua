@@ -25,6 +25,7 @@
 
 local locks = ngx.shared.locks;
 local utils = require "src/utils"
+local data = require "src/data"
 
 --------------------------------------------------------------------------------
 -- Database Connection Cleanup
@@ -32,11 +33,11 @@ local utils = require "src/utils"
 -- This function closes the main shared database connection. We use a shared
 -- dict lock to make sure only one NGINX worker runs the cleanup.
 --
-function database_connection_cleanup ()
+local function database_connection_cleanup ()
    local ok, err = locks:add('database_connection_cleanup', true)
    if not ok and err == "exists" then return nil end
    utils.log(ngx.INFO, "Closing database connection...")
-   db:close_db()
+   data:close_db()
 end
 
 database_connection_cleanup()

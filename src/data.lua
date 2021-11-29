@@ -26,6 +26,17 @@
 --- along with Kayicoy. If not, see <https://www.gnu.org/licenses/>.
 
 local data = {}
+local config = require "secrets/config"
+local database = require "src/database"
+
+--------------------------------------------------------------------------------
+-- Initialize Worker Database Connection Object
+--
+-- Every NGINX worker will load this file once, and thus will have its own
+-- database object containing a unique database connection.
+--
+local db = database:init_db(config.datastore_path)
+
 
 --------------------------------------------------------------------------------
 -- Insert a Consent Request to Database

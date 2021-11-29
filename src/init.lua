@@ -7,8 +7,8 @@
 --- Maintainer: Mohammad Matini <mohammad.matini@outlook.com>
 
 --- Description: This file contains the initialization code that will run on
---- NGINX boot, within NGINX's master process. It creates a global shared
---- database object, and runs the database migrations.
+--- NGINX boot, within NGINX's master process. Currently it mainly runs the
+--- database migrations.
 
 --- This file is part of Kayicoy.
 
@@ -33,12 +33,6 @@ local locks = (require("ngx")).shared.locks
 local utils = require "src/utils"
 local log = utils.log
 
---------------------------------------------------------------------------------
--- Initialize Global Database Connection Object
---
-local err -- we want `db' to be global, but err not
-db, err = database:init_db(config.datastore_path)
-if not db then error ("ERROR: Failed to open database: " .. err) end
 
 --------------------------------------------------------------------------------
 -- Run Pending Database Migrations

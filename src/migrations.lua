@@ -37,11 +37,10 @@ local migrations = {
       id          = 1,
       date        = "2021-11-28T14:39:50Z",
       description = [[
-        Configure WAL support. 
+        Configure WAL support.
 
           We have multiple writers from different NGINX workers, so using
-          SQLite's WAL journal mode will help prevent deadlocks, and we
-          don't really need to handle retry on SQLITE_BUSY responses.
+          SQLite's WAL journal mode will help reduce SQLITE_BUSY responses.
           We have to execute this in a separate migration, because PRAGMA
           calls cannot happen inside open transactions.
       ]],

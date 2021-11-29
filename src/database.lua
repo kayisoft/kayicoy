@@ -204,16 +204,17 @@ function db:exec (sql_string, ...)
 
    -- Execute Statement ----------------------------------------
    repeat
-      local ret = sqlite.sqlite3_step(statement)
-      if ret == SQLITE_ROW  then
+      local step_ret = sqlite.sqlite3_step(statement)
+      if step_ret == SQLITE_ROW  then
          local row = {}
          for i = 0, sqlite.sqlite3_column_count(statement) - 1 do
             row[ffi.string(sqlite.sqlite3_column_name(statement, i))] =
                ffi.string(sqlite.sqlite3_column_text(statement, i))
          end
          table.insert(res, row)
-      elseif ret == SQLITE_DONE then done = true
-      else error("ERROR: Could not exec SQL query, err: " .. ret)
+      elseif step_ret == SQLITE_BUSY then ngx.sleep(0.002)
+      elseif step_ret == SQLITE_DONE then done = true
+      else error("ERROR: Could not exec SQL query, err: " .. step_ret)
       end
    until done
 
