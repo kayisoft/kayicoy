@@ -29,10 +29,10 @@ local db = {}
 local ffi = require "ffi"
 local sqlite = ffi.load "sqlite3"
 local migrations = require "src/migrations"
-
-local locks = (require("ngx")).shared.locks
-
 local utils = require "src/utils"
+local ngx = require "ngx"
+
+local locks = ngx.shared.locks
 local logerr = utils.logerr
 local log = utils.log
 
@@ -115,23 +115,26 @@ function db:init_db (path)
    -- initialized. When OpenResty's Lua cache is disabled, the init
    -- functions are run on every request. We can't have them call
    -- sqlite3_config again and again, so we use a lock to prevent that.
-   local got_lock, err = locks:add('database_configured', true)
-   if got_lock then
-      local ret = sqlite.sqlite3_config(
-         SQLITE_CONFIG_LOG, error_log_callback, nil);
-      if ret ~= SQLITE_OK then return nil, ret end
+   local lock_key = 'database_configured'
+   local locked, err = locks:add(lock_key, true)
+
+   if locked then local config_ret = sqlite.sqlite3_config(
+         SQLITE_CONFIG_LOG, error_log_callback, nil)
+      assert(config_ret == SQLITE_OK, "ERROR: Failed to configure database")
+   else
+      assert(err == "exists", "ERROR: Failed to lock ("..lock_key.."): "..err)
    end
 
    local db_handle = ffi.new("sqlite3*[1]") -- pointer-to-pointer to sqlite3
-   local ret = sqlite.sqlite3_open(path, db_handle)
-   if ret ~= SQLITE_OK then -- db_handle[0] dereferences the outer pointer
-      return nil, ffi.string(sqlite.sqlite3_errmsg(db_handle[0])) ..'['..ret..']'
-   end
+   local open_ret = sqlite.sqlite3_open(path, db_handle)
+   assert(open_ret == SQLITE_OK, -- db_handle[0] dereferences the outer pointer
+          "ERROR: Failed to open database: " ..
+          ffi.string(sqlite.sqlite3_errmsg(db_handle[0]))..'['..open_ret..']')
 
    local obj = {
       connection = db_handle[0],
       -- Just in case we get out of scope and garbage-collected somehow.
-      __gc = function (self) if self.connection then self:close_db() end end
+      __gc = function (obj) if obj.connection then obj:close_db() end end
    }
 
    setmetatable(obj, self)
@@ -181,13 +184,11 @@ function db:exec (sql_string, ...)
    -- Prepare Statement ----------------------------------------
    -- Using -1 as nByte means read until NUL terminator.
    local statement_handle = ffi.new("sqlite3_stmt*[1]")
-   local ret = sqlite.sqlite3_prepare_v2(
+   local prep_ret = sqlite.sqlite3_prepare_v2(
       self.connection, sql_string, -1,
       statement_handle, nil)
 
-   if ret ~= SQLITE_OK then
-      error("ERROR: Could not compile SQL: "..ret)
-   end
+   assert(prep_ret == SQLITE_OK, "ERROR: Could not compile SQL: "..prep_ret)
 
    local statement = statement_handle[0]
    local res, done = {}, false
@@ -196,10 +197,9 @@ function db:exec (sql_string, ...)
    for i = 1, select("#", ...) do
       local str = tostring(select(i, ...))
       -- Using -1 as nByte means read until NUL terminator.
-      sqlite.sqlite3_bind_text(statement, i, str, -1, nil)
-      if ret ~= SQLITE_OK then
-         error("ERROR: Could not bind SQL parameters: "..ret)
-      end
+      local bind_ret = sqlite.sqlite3_bind_text(statement, i, str, -1, nil)
+      assert(bind_ret == SQLITE_OK, "ERROR: Could not bind SQL parameters: " ..
+             bind_ret)
    end
 
    -- Execute Statement ----------------------------------------
@@ -219,9 +219,9 @@ function db:exec (sql_string, ...)
    until done
 
    -- Cleanup --------------------------------------------------
-   sqlite.sqlite3_clear_bindings(statement);
-   sqlite.sqlite3_reset(statement);
-   sqlite.sqlite3_finalize(statement);
+   sqlite.sqlite3_clear_bindings(statement)
+   sqlite.sqlite3_reset(statement)
+   sqlite.sqlite3_finalize(statement)
    return res
 end
 
@@ -268,17 +268,17 @@ function db:exec_migration (migration)
    log("Running migration number: "..migration.id)
    if #migration.up == 1 then
    -- Single Statement Migrations ------------------------------
-      local success, err = pcall(self.exec, self, migration.up[1])
-      if not success then
-         error("ERROR: Failed to run migration (" ..
-               migration.id..")\n"..err)
+      local successful, err = pcall(self.exec, self, migration.up[1])
+      if not successful then
+         error("ERROR: Failed to run migration ("..
+               migration.id.."): ".. err)
       end
    else
    -- Multi-Statement Migrations -------------------------------
       self:exec("BEGIN TRANSACTION")
       for index, statement in ipairs(migration.up) do
-         local success, err = pcall(self.exec, self, statement)
-         if not success then self:exec("ROLLBACK")
+         local successful, err = pcall(self.exec, self, statement)
+         if not successful then self:exec("ROLLBACK")
             error("ERROR: Failed to run migration ("..migration.id..") " ..
                   "statement ("..index..")"..err)
          end
@@ -288,9 +288,9 @@ function db:exec_migration (migration)
    end
 
    -- Update `user_version' ------------------------------------
-   local success, err = pcall(
+   local successful, err = pcall(
       self.exec, self, "PRAGMA user_version = "..migration.id..";")
-   if not success then self:exec("ROLLBACK")
+   if not successful then self:exec("ROLLBACK")
       error("ERROR: Failed to update `user_version' " ..
             "PRAGMA after migration ("..migration.id..")\n"..err)
    end

@@ -27,17 +27,27 @@
 
 local config = require "secrets/config"
 local database = require "src/database"
+local ngx = require "ngx"
 
-local locks = (require("ngx")).shared.locks
-
-local utils = require "src/utils"
-local log = utils.log
-
+local locks = ngx.shared.locks
 
 --------------------------------------------------------------------------------
 -- Run Pending Database Migrations
 --
 -- To run the migration once only, we use a shared dict lock
 --
-local ok, err = locks:add('database_migration', true)
-if ok then db:migrate_latest() end
+local function init_database_migrations ()
+   local lock_key = 'database_migration'
+   local locked, err = locks:add(lock_key, true)
+
+   if not locked then
+      assert(err == "exists", "ERROR: Failed to lock ("..lock_key.."): "..err)
+      return nil
+   end
+
+   local db = database:init_db(config.datastore_path)
+   db:migrate_latest()
+   db:close_db()
+end
+
+init_database_migrations()

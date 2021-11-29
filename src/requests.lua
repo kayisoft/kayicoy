@@ -69,10 +69,10 @@ end
 
 --------------------------------------------------------------------------------
 -- GET Consent Request Status
--- 
+--
 -- Get a previously created consent request by ID. Use this to check later
 -- whether the user had agreed to the request, or not.
---     
+--
 -- GET /api/parental-consent-requests/{id}
 -- Response: 200 { "id": "jEAlpofWeeRY", "agreed": false }
 --
@@ -81,8 +81,8 @@ local function get_consent_request()
    if not id or not utils.validate_request_id(id) then
       reject(404, "Consent Request Not Found")
    end
-   local id = id:upper()
    local record = data:get_consent_request(id)
+   id = id:upper()
    if not record then reject(404, "Consent Request Not Found") end
 
    respond(200, { id = record.id,

@@ -138,7 +138,7 @@ function utils.send_consent_request_email (to_email)
    local q = utils.quote_shell_arg
    local curl_command = {
       "curl", "--silent", "--ssl-reqd", "--url", q(config.smtp_server),
-      "--mail-from", q(config.sender_email), 
+      "--mail-from", q(config.sender_email),
       "--mail-rcpt", q(to_email),
       "--user", q(config.smtp_credentials),
       "--upload-file", "-"
@@ -172,7 +172,7 @@ end
 
 --------------------------------------------------------------------------------
 -- Email Validation Function
--- 
+--
 -- Adapted from code by james2doyle <james2doyle@gmail.com>
 -- https://gist.github.com/james2doyle/67846afd05335822c149
 -- TODO: Throws error on "test@example.com@@", should fix later

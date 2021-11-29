@@ -23,9 +23,11 @@
 --- You should have received a copy of the GNU General Public License
 --- along with Kayicoy. If not, see <https://www.gnu.org/licenses/>.
 
-local locks = ngx.shared.locks;
 local utils = require "src/utils"
 local data = require "src/data"
+local ngx = require "ngx"
+
+local locks = ngx.shared.locks;
 
 --------------------------------------------------------------------------------
 -- Database Connection Cleanup
