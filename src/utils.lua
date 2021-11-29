@@ -28,6 +28,7 @@
 local utils = {}
 
 local ngx = require "ngx"
+local crypto = require "src/crypto"
 local cjson = require "cjson.safe"
 cjson.decode_invalid_numbers(false)
 
@@ -133,13 +134,9 @@ end
 --------------------------------------------------------------------------------
 --
 function utils.generate_request_id ()
-   local res, length = {}, 16
-   local urand = assert (io.open ('/dev/urandom', 'rb'))
-   local str = urand:read(length)
-   urand:close()
-
-   for i = 1, str:len() do res[i] = string.format("%x", str:byte(i) % 16) end
-   return string.upper(table.concat(res))
+   local random_bytes1 = crypto.random()
+   local random_bytes2 = crypto.random()
+   return string.upper(bit.tohex(random_bytes1)..bit.tohex(random_bytes2))
 end
 
 --------------------------------------------------------------------------------

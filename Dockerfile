@@ -36,7 +36,7 @@ RUN apt-get update &&\
         tee /etc/apt/sources.list.d/openresty.list && \
         apt-get update &&\
         DEBIAN_FRONTEND=noninteractive apt-get install -yq \
-        --no-install-recommends openresty openresty-opm libsqlite3-dev &&\
+        --no-install-recommends openresty libsqlite3-dev libsodium-dev &&\
         DEBIAN_FRONTEND=noninteractive apt-get clean &&\
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

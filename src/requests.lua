@@ -27,6 +27,7 @@
 
 local ngx = require "ngx"
 local utils = require "src/utils"
+local crypto = require "src/crypto"
 local email = require "src/email"
 local data = require "src/data"
 
@@ -70,7 +71,8 @@ local function create_consent_request ()
              ") Only `connected' is allowed")
    end
 
-   data.insert_consent_request(id, service, email_address)
+   local hashed_email = crypto.hash_secret(email_address)
+   data.insert_consent_request(id, service, hashed_email)
    email.send_consent_request_email(email_address, id, service)
    respond(201, {id = id})
 end
