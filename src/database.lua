@@ -43,9 +43,7 @@ local log = utils.log
 -- you face some unknown ones later.
 --
 local SQLITE_OK         =  0   -- Successful result
-local SQLITE_ERROR      =  1   -- Generic error
 local SQLITE_BUSY       =  5   -- The database file is locked
-local SQLITE_LOCKED     =  6   -- A table in the database is locked
 local SQLITE_ROW        = 100  -- sqlite3_step() has another row ready
 local SQLITE_DONE       = 101  -- sqlite3_step() has finished executing
 local SQLITE_CONFIG_LOG =  16  -- xFunc, void*

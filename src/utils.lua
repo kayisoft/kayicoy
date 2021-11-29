@@ -57,16 +57,14 @@ local reject = utils.reject     -- alias for use in this file
 -- Simple Logging Function
 function utils.log (...)
    if ngx then return ngx.log(ngx.NOTICE, ...)
-   else return print(level, ...) end
+   else return print(...) end
 end
-
-local log = utils.log           -- alias for use in this file
 
 --------------------------------------------------------------------------------
 -- Simple Error Logging Function
 function utils.logerr (...)
    if ngx then return ngx.log(ngx.ERR, ...)
-   else return print(level, ...) end
+   else return print(...) end
 end
 
 local logerr = utils.logerr           -- alias for use in this file
