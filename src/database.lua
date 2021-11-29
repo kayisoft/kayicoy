@@ -6,8 +6,9 @@
 --- Author: Mohammad Matini <mohammad.matini@outlook.com>
 --- Maintainer: Mohammad Matini <mohammad.matini@outlook.com>
 
---- Description: This file contains the bindings to the SQLite database
---- library, in addition to a basic database migration system.
+--- Description: This file contains some bindings to the SQLite database
+--- library, and some simple wrappers around them, in addition to a basic
+--- database migration system.
 
 --- This file is part of Kayicoy.
 

@@ -66,7 +66,6 @@ function data.approve_consent_request (id)
    local result = db:exec([[UPDATE consent_requests
      SET agreed = TRUE, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?;]], id)[1]
-
    return result and result["rows updated"] or 0
 end
 
