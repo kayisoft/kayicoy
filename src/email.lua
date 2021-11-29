@@ -64,7 +64,7 @@ function email.process_unread_emails ()
             return nil
          end
 
-         count = count + resolved
+         count = count + 1
       end
    end
 
