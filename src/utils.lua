@@ -29,6 +29,7 @@ local utils = {}
 
 local ngx = require "ngx"
 local crypto = require "src/crypto"
+local config = require "secrets/config"
 local cjson = require "cjson.safe"
 cjson.decode_invalid_numbers(false)
 
@@ -85,6 +86,22 @@ local logerr = utils.logerr           -- alias for use in this file
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 --
+--------------------------------------------------------------------------------
+-- Parse & validate the current NGINX request service token
+--------------------------------------------------------------------------------
+--
+function utils.validate_service_token ()
+   local incoming_service_token = ngx.req.get_headers()["Authorization"]
+   if not incoming_service_token then reject(401, "Unauthorized") end
+   incoming_service_token = incoming_service_token:gsub("^Bearer ", "")
+
+   for service_token, service_name in pairs(config.services) do
+      if incoming_service_token == service_token then return service_name end
+   end
+
+   return reject(401, "Unauthorized")
+end
+
 --------------------------------------------------------------------------------
 -- Parse & validate the current NGINX request JSON body
 --------------------------------------------------------------------------------

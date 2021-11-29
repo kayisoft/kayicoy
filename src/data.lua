@@ -55,9 +55,10 @@ end
 
 --------------------------------------------------------------------------------
 --
-function data.get_consent_request (id)
+function data.get_consent_request (id, service_name)
    return db:exec([[SELECT * FROM consent_requests
-     WHERE id = ?;]], id)[1]
+     WHERE id = ? AND service_name = ?;]],
+      id, service_name)[1]
 end
 
 --------------------------------------------------------------------------------

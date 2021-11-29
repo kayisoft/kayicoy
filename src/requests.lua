@@ -54,10 +54,11 @@ local method = ngx.req.get_method()
 -- Response: 201 { "id": "A82B88BA476DAADE" }
 --
 local function create_consent_request ()
+   local service = utils.validate_service_token()
+
    local body = utils.parse_request_body()
    local id = utils.generate_request_id()
    local email_address = body.email
-   local service = body.service
 
    local valid_email_p, validation_error = utils.validate_email(email_address)
    if not valid_email_p then
@@ -88,12 +89,13 @@ end
 -- Response: 200 { "id": "jEAlpofWeeRY", "agreed": false }
 --
 local function get_consent_request()
+   local service = utils.validate_service_token()
    local id = utils.parse_request_id()
    if not id or not utils.validate_request_id(id) then
       reject(404, "Consent Request Not Found")
    end
    id = id:upper()
-   local record = data.get_consent_request(id)
+   local record = data.get_consent_request(id, service)
    if not record then reject(404, "Consent Request Not Found") end
 
    respond(200, { id = record.id, service = record.service,
