@@ -82,8 +82,8 @@ local function get_consent_request()
    if not id or not utils.validate_request_id(id) then
       reject(404, "Consent Request Not Found")
    end
-   local record = data:get_consent_request(id)
    id = id:upper()
+   local record = data.get_consent_request(id)
    if not record then reject(404, "Consent Request Not Found") end
 
    respond(200, { id = record.id,
