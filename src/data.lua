@@ -26,8 +26,14 @@
 --- along with Kayicoy. If not, see <https://www.gnu.org/licenses/>.
 
 local data = {}
+
 local config = require "secrets/config"
 local database = require "src/database"
+local utils = require "src/utils"
+local ngx = require "ngx"
+
+local logerr = utils.logerr
+local log = utils.log
 
 --------------------------------------------------------------------------------
 -- Initialize Worker Database Connection Object
@@ -37,6 +43,34 @@ local database = require "src/database"
 --
 local db = database:init_db(config.datastore_path)
 
+--------------------------------------------------------------------------------
+-- Check IMAP Email
+--
+function data.check_email ()
+   log("Checking Emails...")
+   local unseen_emails = utils.imap_command("INBOX?UNSEEN")
+   if not unseen_emails then return nil end
+   local count = 0
+
+   for unseen_email_id in unseen_emails:gmatch("[0-9]+") do
+      local email_subject = utils.imap_command(
+         "INBOX;UID="..unseen_email_id.."/;SECTION=HEADER.FIELDS%20(SUBJECT)")
+      if not email_subject then return nil end
+
+      local request_id = ngx.re.match(email_subject, "\\[([a-fA-F0-9]{16})\\]", "joix")[1]
+      if request_id then
+         local resolved = data.approve_consent_request(request_id)
+         if not resolved then
+            logerr("ERROR: Unknow error when approving requests", resolved)
+            return nil
+         end
+         count = count + (resolved[1] or 0)
+      end
+   end
+
+   log(count == 0 and "Nothing to Resolve" or "Resolved: "..count)
+   return count
+end
 
 --------------------------------------------------------------------------------
 -- Insert a Consent Request to Database
@@ -53,6 +87,15 @@ end
 --
 function data.get_consent_request (id)
    return db:exec([[SELECT * FROM consent_requests WHERE id = ?;]], id)[1]
+end
+
+--------------------------------------------------------------------------------
+-- Approve a Consent Request by ID
+--
+function data.approve_consent_request (id)
+   return db:exec([[UPDATE consent_requests
+     SET agreed = TRUE, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?;]], id)
 end
 
 return data

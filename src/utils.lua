@@ -117,6 +117,35 @@ function utils.generate_request_id ()
 end
 
 --------------------------------------------------------------------------------
+-- Run cURL-Based IMAP Command
+--
+-- This function accepts URL-based cURL IMAP commands, _not_ pure IMAP
+-- commands. For example: `INBOX;UID=12/;SECTION=HEADER.FIELDS%20(SUBJECT)'
+--
+function utils.imap_command(url_command)
+   local q = utils.quote_shell_arg
+   local curl_command = {
+      "curl", "--silent", "--url", q(config.imap_server.."/"..url_command),
+      "--user", q(config.imap_credentials)
+   }
+
+   local command = table.concat(curl_command, " ")
+   local timeout = 10000  -- 10 seconds
+   local max_size = 51200 -- 50KiB
+
+   local ok, stdout, stderr, reason, status =
+      shell.run(command, nil, timeout, max_size)
+
+   if not ok then
+      logerr("FAILED TO RUN IMAP COMMAND: ",
+          command, stdout, stderr, reason, status)
+      return nil
+   end
+
+   return stdout
+end
+
+--------------------------------------------------------------------------------
 -- Convert SQLite Numbers to Booleans
 --
 -- SQLite uses numbers.
