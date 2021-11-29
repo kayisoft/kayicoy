@@ -103,16 +103,24 @@ function email.send_consent_request_email (to_email, request_id, service)
       "Date: ", ngx.utctime(), "\n\n", [[
 Dear Kayisoft User,
 
-Your child attempted to use our service ]]..service..[[.
-This Service requires parental consent, as it collects various
-personal information about the child. If you consent to allowing
-your child to use our service, then please reply to this Email.
+Your child under-13 years of age tried to create an account on our
+]]..service..[[ service. This Service requires parental consent, as it
+collects various personal information from the child. If you consent to
+allowing your child to use our service, then please reply to this Email.
 
-Please do not modify the subject (i.e. title) of this Email. The
-ID between two brackets [ID] is required to make sure we serve
-your request correctly. Otherwise your child's login may fail.
+If you refuse to consent, then please do not reply to this Email.
 
-If you refuse to give consent, then please ignore this Email.
+Please do not modify the subject (i.e. title) of this Email when replying.
+The ID between two brackets [ID] is required to make sure we serve your
+request correctly.
+
+You can find detailed information about what data we collect on our
+privacy policy page: https://connected.kayisoft.net/pages/privacy-policy
+
+You can contact us by email at: support@kayisoft.net
+
+Best Regards,
+Kayisoft Team
 ]]
    }
 
