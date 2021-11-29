@@ -30,11 +30,11 @@ local data = {}
 --------------------------------------------------------------------------------
 -- Insert a Consent Request to Database
 --
-function data.insert_consent_request (id, service, email_hash, agreed)
+function data.insert_consent_request (id, service, email_hash)
    return db:exec([[INSERT INTO consent_requests
      (id, service_name, email_hash, agreed)
-     VALUES (?, ?, ?, ?);
-   ]], id, service, email_hash, agreed)
+     VALUES (?, ?, ?, FALSE);
+   ]], id, service, email_hash)
 end
 
 --------------------------------------------------------------------------------

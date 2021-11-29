@@ -62,8 +62,8 @@ local function create_consent_request ()
              ") Only `connected' is allowed")
    end
 
-   data:insert_consent_request(id, service, email, false)
    utils.send_consent_request_email(email)
+   data.insert_consent_request(id, service, email)
    respond(201, {id = id})
 end
 
