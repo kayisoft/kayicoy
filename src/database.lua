@@ -37,10 +37,12 @@ local logerr = utils.logerr
 local log = utils.log
 
 --------------------------------------------------------------------------------
--- SQLite Return Codes
+--                              Return Codes
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 --
--- The ones we're using anyway. Check sqlite.h, the library's header file if
--- you face some unknown ones later.
+-- SQLite return codes that we're using. Check the library's header file
+-- `sqlite.h' if you face some unknown ones later, or need them.
 --
 local SQLITE_OK         =  0   -- Successful result
 local SQLITE_BUSY       =  5   -- The database file is locked
@@ -49,10 +51,13 @@ local SQLITE_DONE       = 101  -- sqlite3_step() has finished executing
 local SQLITE_CONFIG_LOG =  16  -- xFunc, void*
 
 --------------------------------------------------------------------------------
--- SQLite CFFI Function Definitions
+--                              CFFI Declarations
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 --
--- The ones we're using only. Check sqlite.h, the library's header file if
--- you need some additional functions later. Just copy-paste them here.
+-- SQLite CFFI function declarations that we're currently using. Check the
+-- library's header file `sqlite.h' if you need additional functions
+-- later. Just copy-paste them here, and you're good to go.
 --
 ffi.cdef [[
 typedef struct sqlite3 sqlite3;
@@ -87,7 +92,13 @@ const unsigned char *sqlite3_column_text(sqlite3_stmt*, int iCol);
 ]]
 
 --------------------------------------------------------------------------------
--- SQLite Error Callback Function
+--                              SQLite Wrappers
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
+-- SQLite error callback function
+--------------------------------------------------------------------------------
 --
 -- This function is cast to a C function pointer to be compatible with
 -- SQLite's logging configuration. It is passed to `sqlite3_config()' when
@@ -102,15 +113,21 @@ local error_log_callback = ffi.cast(
 end)
 
 --------------------------------------------------------------------------------
--- Initialize New SQLite Database Object
+-- Initialize new SQLite database object
+--------------------------------------------------------------------------------
 --
 -- This function initializes a new database object, containing a newly
 -- opened connection to an SQLite database file. It also configures the
 -- SQLite library to use our logging functions if it hadn't been before.
 --
 function db:init_db (path)
-   if self.connection then return self end
+   if self.connection then
+      -- If we already have a connection, then this is not the first time we
+      -- were called, and so we can just return our own object immediately.
+      return self
+   end
 
+   -- Configure Library ----------------------------------------
    -- We can only run SQLite3_config before the SQLite library is
    -- initialized. When OpenResty's Lua cache is disabled, the init
    -- functions are run on every request. We can't have them call
@@ -125,12 +142,14 @@ function db:init_db (path)
       assert(err == "exists", "ERROR: Failed to lock ("..lock_key.."): "..err)
    end
 
+   -- Initialize Connection ------------------------------------
    local db_handle = ffi.new("sqlite3*[1]") -- pointer-to-pointer to sqlite3
    local open_ret = sqlite.sqlite3_open(path, db_handle)
    assert(open_ret == SQLITE_OK, -- db_handle[0] dereferences the outer pointer
           "ERROR: Failed to open database: " ..
           ffi.string(sqlite.sqlite3_errmsg(db_handle[0]))..'['..open_ret..']')
 
+   -- Create Database Object -----------------------------------
    local obj = {
       connection = db_handle[0],
       -- Just in case we get out of scope and garbage-collected somehow.
@@ -143,7 +162,8 @@ function db:init_db (path)
 end
 
 --------------------------------------------------------------------------------
--- Close an SQLite Database Connection
+-- Close an SQLite database connection
+--------------------------------------------------------------------------------
 --
 -- This function closes the database connection of the current database
 -- object, replacing it with `nil'. The database object is useless after
@@ -160,7 +180,8 @@ function db:close_db ()
 end
 
 --------------------------------------------------------------------------------
--- Execute an SQLite Query
+-- Execute an SQLite query
+--------------------------------------------------------------------------------
 --
 -- This function executes the passed SQL statement, and accepts a variable
 -- number of parameterized arguments that will be bound in order to the SQL
@@ -226,12 +247,18 @@ function db:exec (sql_string, ...)
 end
 
 --------------------------------------------------------------------------------
--- Run Pending Database Migrations
+--                              Migration Tools
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 --
--- This function checks to see if there are any pending database migration
--- that haven't been run before, by comparing SQLite's `user_version'
--- PRAGMA. If any such migrations were found, the are run in order until no
--- un-run migrations are left.
+--------------------------------------------------------------------------------
+-- Run pending database migrations
+--------------------------------------------------------------------------------
+--
+-- Checks to see if there are any pending database migration that haven't
+-- been run before, by comparing SQLite's `user_version' PRAGMA. If any such
+-- migrations were found, the are run in order until no un-run migrations
+-- are left.
 --
 function db:migrate_latest ()
    -- Check Versions -------------------------------------------
@@ -254,15 +281,16 @@ function db:migrate_latest ()
 end
 
 --------------------------------------------------------------------------------
--- Run a Specific Database Migration
+-- Run a specific database migration
+--------------------------------------------------------------------------------
 --
--- This function executes a database migration. If the migration contains
--- multiple statements, then it is run in a transaction, which is
--- rolled-back if any errors occur. If the migration is composed of a single
--- statement, then it is run directly without a transaction. The function
--- also updates the database's `user_version' PRAGMA value after running a
--- migration successfully. Some PRAGMA modifications cannot happen inside
--- transactions, putting them alone in a migration makes them work.
+-- If the migration contains multiple statements, then it is run in a
+-- transaction, which is rolled-back if any errors occur. If the migration
+-- is composed of a single statement, then it is run directly without a
+-- transaction. The function also updates the database's `user_version'
+-- PRAGMA value after running a migration successfully. Some PRAGMA
+-- modifications cannot happen inside transactions, putting them alone in a
+-- migration makes them work.
 --
 function db:exec_migration (migration)
    log("Running migration number: "..migration.id)

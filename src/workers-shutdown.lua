@@ -6,7 +6,8 @@
 --- Author: Mohammad Matini <mohammad.matini@outlook.com>
 --- Maintainer: Mohammad Matini <mohammad.matini@outlook.com>
 
---- Description: This file contains code to run on NGINX worker shutdown.
+--- Description: This file contains code to run on NGINX worker
+--- shutdown. Maily used to clean-up database connections.
 
 --- This file is part of Kayicoy.
 
@@ -25,20 +26,13 @@
 
 local utils = require "src/utils"
 local data = require "src/data"
-local ngx = require "ngx"
-
-local locks = ngx.shared.locks;
 
 --------------------------------------------------------------------------------
--- Database Connection Cleanup
---
--- This function closes the main shared database connection. We use a shared
--- dict lock to make sure only one NGINX worker runs the cleanup.
+-- Close current worker's database connection
+--------------------------------------------------------------------------------
 --
 local function database_connection_cleanup ()
-   local ok, err = locks:add('database_connection_cleanup', true)
-   if not ok and err == "exists" then return nil end
-   utils.log(ngx.INFO, "Closing database connection...")
+   utils.log("Closing database connection...")
    data:close_db()
 end
 

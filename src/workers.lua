@@ -1,12 +1,14 @@
 --------------------------------------------------------------------------------
----- workers.lua -- Functions to Run on NGINX Worker Shutdown
+---- workers.lua -- Functions to Run on NGINX Worker Boot
 
 --- Copyright (C) 2021 Kayisoft, Inc.
 
 --- Author: Mohammad Matini <mohammad.matini@outlook.com>
 --- Maintainer: Mohammad Matini <mohammad.matini@outlook.com>
 
---- Description: This file contains code to run on NGINX worker shutdown.
+--- Description: This file contains code to run on NGINX worker boot.
+--- Currently used mainly to hook timers to run unread Email checks
+--- periodically.
 
 --- This file is part of Kayicoy.
 
@@ -24,7 +26,7 @@
 --- along with Kayicoy. If not, see <https://www.gnu.org/licenses/>.
 
 local ngx = require "ngx"
-local data = require "src/data"
+local email = require "src/email"
 local utils = require "src/utils"
 local config = require "secrets/config"
 
@@ -32,9 +34,14 @@ local logerr = utils.logerr
 local locks = ngx.shared.locks
 local interval = config.email_check_interval
 
+--------------------------------------------------------------------------------
+-- Process Email consent responses, after locking
+--------------------------------------------------------------------------------
+--
 -- The lock is held for the whole interval to prevent multiple workers from
 -- running the same job simultaneously. We substract 1ms from the lock
 -- expiration time to prevent a race condition with the next timer event.
+--
 local function check_consent_responses (premature)
    if premature then return end
    local lock_key = "check_consent_responses"
@@ -44,8 +51,12 @@ local function check_consent_responses (premature)
       return nil
    end
 
-   data.check_email()
+   email.process_unread_emails()
 end
 
+--------------------------------------------------------------------------------
+-- Setup periodic background jobs to check consent Emails
+--------------------------------------------------------------------------------
+--
 local handle, err = ngx.timer.every(interval, check_consent_responses)
 if not handle then logerr("Failed to create timer: ", err) end

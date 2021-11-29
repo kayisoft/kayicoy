@@ -8,7 +8,7 @@
 
 --- Description: This file contains various helper functions and utilities
 --- used by the consent request API. It includes tools to parse and validate
---- data, and functions send HTTP responses and SMTP Emails.
+--- data, and some wrapper functions around NGINX's API.
 
 --- This file is part of Kayicoy.
 
@@ -28,14 +28,18 @@
 local utils = {}
 
 local ngx = require "ngx"
-local shell = require "resty.shell"
 local cjson = require "cjson.safe"
 cjson.decode_invalid_numbers(false)
 
-local config = require "secrets/config"
-
 --------------------------------------------------------------------------------
--- Simple Request Response Function
+--                              NGINX Wrappers
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
+-- Simple response function for the current NGINX request
+--------------------------------------------------------------------------------
+--
 function utils.respond (status, message)
    ngx.status = status
    ngx.header["Content-Type"] = "application/json"
@@ -46,7 +50,9 @@ end
 local respond = utils.respond   -- alias for use in this file
 
 --------------------------------------------------------------------------------
--- Simple Request Rejection Function
+-- Simple rejection function for the current NGINX request
+--------------------------------------------------------------------------------
+--
 function utils.reject (status, message)
    respond(status, {message = message})
 end
@@ -54,14 +60,18 @@ end
 local reject = utils.reject     -- alias for use in this file
 
 --------------------------------------------------------------------------------
--- Simple Logging Function
+-- Simple NGINX-friendly logging function
+--------------------------------------------------------------------------------
+--
 function utils.log (...)
    if ngx then return ngx.log(ngx.NOTICE, ...)
    else return print(...) end
 end
 
 --------------------------------------------------------------------------------
--- Simple Error Logging Function
+-- Simple NGINX-friendly error logging function
+--------------------------------------------------------------------------------
+--
 function utils.logerr (...)
    if ngx then return ngx.log(ngx.ERR, ...)
    else return print(...) end
@@ -70,7 +80,14 @@ end
 local logerr = utils.logerr           -- alias for use in this file
 
 --------------------------------------------------------------------------------
--- Parse & Validate Request Body
+--                              Parsers & Validators
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
+-- Parse & validate the current NGINX request JSON body
+--------------------------------------------------------------------------------
+--
 function utils.parse_request_body ()
    if not ngx.req.get_headers()["Content-Type"]:match("application/json") then
       reject(415, "Unsupported Media Type: Only `application/json` is accepted")
@@ -83,14 +100,14 @@ function utils.parse_request_body ()
 end
 
 --------------------------------------------------------------------------------
--- Parse Request ID
+-- Parse request IDs from the current NGINX request URL
+--------------------------------------------------------------------------------
+--
 function utils.parse_request_id ()
    local match, err = ngx.re.match(
-      ngx.var.request_uri, "/parental-consent-requests/(.*$)", "jo"
-   )
+      ngx.var.request_uri, "/parental-consent-requests/(.*$)", "joix")
    if match then return match[1] end
-   if err then
-      logerr(err)
+   if err then logerr(err)
       reject(500, "Internal Server Error")
    end
 
@@ -98,14 +115,23 @@ function utils.parse_request_id ()
 end
 
 --------------------------------------------------------------------------------
--- Validate Request ID Format
+-- Validate request ID formatting; 16 hex characters
+--------------------------------------------------------------------------------
+--
 function utils.validate_request_id (id)
    local id_regex = "^[a-fA-F0-9]{16}$"
    return ngx.re.find(id, id_regex, "joix")
 end
 
 --------------------------------------------------------------------------------
--- Generate Random Request ID
+--                              Miscellaneous
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
+-- Generate random request IDs; 16 hex characters, read from urandom
+--------------------------------------------------------------------------------
+--
 function utils.generate_request_id ()
    local res, length = {}, 16
    local urand = assert (io.open ('/dev/urandom', 'rb'))
@@ -117,105 +143,24 @@ function utils.generate_request_id ()
 end
 
 --------------------------------------------------------------------------------
--- Run cURL-Based IMAP Command
---
--- This function accepts URL-based cURL IMAP commands, _not_ pure IMAP
--- commands. For example: `INBOX;UID=12/;SECTION=HEADER.FIELDS%20(SUBJECT)'
---
-function utils.imap_command(url_command)
-   local q = utils.quote_shell_arg
-   local curl_command = {
-      "curl", "--silent", "--url", q(config.imap_server.."/"..url_command),
-      "--user", q(config.imap_credentials)
-   }
-
-   local command = table.concat(curl_command, " ")
-   local timeout = 10000  -- 10 seconds
-   local max_size = 51200 -- 50KiB
-
-   local ok, stdout, stderr, reason, status =
-      shell.run(command, nil, timeout, max_size)
-
-   if not ok then
-      logerr("FAILED TO RUN IMAP COMMAND: ",
-          command, stdout, stderr, reason, status)
-      return nil
-   end
-
-   return stdout
-end
-
+-- Convert SQLite numbers to booleans, SQLite uses raw numbers by default.
 --------------------------------------------------------------------------------
--- Convert SQLite Numbers to Booleans
---
--- SQLite uses numbers.
 --
 function utils.num_to_bool (num) return tonumber(num) ~= 0 and true or false end
 
 --------------------------------------------------------------------------------
--- Quote Shell Arguments
+-- Quote shell arguments
+--------------------------------------------------------------------------------
 --
--- It escapes single quotes by replacing them with '\'', then wraps the
--- whole string in single quotes. Only single quotes require escaping, all
--- other shell constructs are not interpreted within sh single quote
--- strings.
+-- Escape single quotes by replacing them with '\'', then wraps the whole
+-- string in single quotes. Only single quotes require escaping, all other
+-- shell constructs are not interpreted within sh single quote strings.
 --
 function utils.quote_shell_arg (str)
    return "'" .. str:gsub("'", "'\\\''") .. "'"
 end
 
 --------------------------------------------------------------------------------
--- Send Consent Request Email
---
--- Send an Email requesting consent to `to_email` using cURL in a
--- sub-process non-blocking to NGINX.
---
-function utils.send_consent_request_email (to_email, request_id, service)
-   local q = utils.quote_shell_arg
-   local curl_command = {
-      "curl", "--silent", "--ssl-reqd", "--url", q(config.smtp_server),
-      "--mail-from", q(config.sender_email),
-      "--mail-rcpt", q(to_email),
-      "--user", q(config.smtp_credentials),
-      "--upload-file", "-"
-   }
-
-   local message = {
-      "From: ", config.sender_name, " ", "<",config.sender_email,">", "\n",
-      "To: ", "<",to_email,">", "\n",
-      "Subject: ", "Kayisoft Consent Request ["..request_id.."]", "\n",
-      "Date: ", ngx.utctime(), "\n\n", [[
-Dear Kayisoft User,
-
-Your child attempted to use our service ]]..service..[[.
-This Service requires parental consent, as it collects various
-personal information about the child. If you consent to allowing
-your child to use our service, then please reply to this Email.
-
-Please do not modify the subject (i.e. title) of this Email. The
-ID between two brackets [ID] is required to make sure we serve
-your request correctly. Otherwise your child's login may fail.
-
-If you refuse to give consent, then please ignore this Email.
-]]
-   }
-
-   local command = table.concat(curl_command, " ")
-   local stdin = table.concat(message)
-   local timeout = 5000  -- 5 seconds
-   local max_size = 5120  -- 5KiB
-
-   local ok, stdout, stderr, reason, status =
-      shell.run(command, stdin, timeout, max_size)
-
-   if not ok then
-      logerr("FAILED TO SEND EMAIL: ", stdout, stderr, reason, status)
-      reject(500, "Internal Server Error")
-   end
-end
-
---------------------------------------------------------------------------------
--- Email Validation Function
 --
 -- Adapted from code by james2doyle <james2doyle@gmail.com>
 -- https://gist.github.com/james2doyle/67846afd05335822c149
@@ -226,8 +171,13 @@ function utils.validate_email (str)
    if (type(str) ~= 'string') then return nil end
 
    local lastAt = str:find("[^%@]+$")
-   local localPart = str:sub(1, (lastAt - 2)) -- Returns the substring before '@' symbol
-   local domainPart = str:sub(lastAt, #str) -- Returns the substring after '@' symbol
+
+   -- Get the substring before '@' symbol
+   local localPart = str:sub(1, (lastAt - 2))
+
+   -- Get the substring after '@' symbol
+   local domainPart = str:sub(lastAt, #str)
+
    -- we werent able to split the email properly
    if localPart == nil then
       return nil, "Local name is invalid"

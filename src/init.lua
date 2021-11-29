@@ -32,9 +32,10 @@ local ngx = require "ngx"
 local locks = ngx.shared.locks
 
 --------------------------------------------------------------------------------
--- Run Pending Database Migrations
+-- Run pending database migrations
+--------------------------------------------------------------------------------
 --
--- To run the migration once only, we use a shared dict lock
+-- To run the migration once only, we use a lock in a NGINX shared dict.
 --
 local function init_database_migrations ()
    local lock_key = 'database_migration'

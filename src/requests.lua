@@ -7,8 +7,8 @@
 --- Maintainer: Mohammad Matini <mohammad.matini@outlook.com>
 
 --- Description: This file contains the main logic for the consent request
---- API. It allows creating new consent requests, and querying the status of
---- previous requests.
+--- API handlers. It allows creating new consent requests, and querying the
+--- status of previous requests.
 
 --- This file is part of Kayicoy.
 
@@ -27,6 +27,7 @@
 
 local ngx = require "ngx"
 local utils = require "src/utils"
+local email = require "src/email"
 local data = require "src/data"
 
 local respond = utils.respond
@@ -34,7 +35,13 @@ local reject = utils.reject
 local method = ngx.req.get_method()
 
 --------------------------------------------------------------------------------
--- POST New Consent Request
+--                              API Handlers
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+--
+--------------------------------------------------------------------------------
+-- POST new consent request
+--------------------------------------------------------------------------------
 --
 -- Create a new consent request for a specific `service'. This will trigger
 -- an Email to be sent to the user's supplied email, and will respond to the
@@ -48,13 +55,13 @@ local method = ngx.req.get_method()
 local function create_consent_request ()
    local body = utils.parse_request_body()
    local id = utils.generate_request_id()
-   local email = body.email
+   local email_address = body.email
    local service = body.service
 
-   local valid_email_p, validation_error = utils.validate_email(email)
+   local valid_email_p, validation_error = utils.validate_email(email_address)
    if not valid_email_p then
       reject(422, validation_error
-             and ("Invalid Email: "..email.." "..validation_error)
+             and ("Invalid Email: "..email_address.." "..validation_error)
              or "Missing Email")
    end
 
@@ -63,13 +70,14 @@ local function create_consent_request ()
              ") Only `connected' is allowed")
    end
 
-   data.insert_consent_request(id, service, email)
-   utils.send_consent_request_email(email, id, service)
+   data.insert_consent_request(id, service, email_address)
+   email.send_consent_request_email(email_address, id, service)
    respond(201, {id = id})
 end
 
 --------------------------------------------------------------------------------
--- GET Consent Request Status
+-- GET consent request status
+--------------------------------------------------------------------------------
 --
 -- Get a previously created consent request by ID. Use this to check later
 -- whether the user had agreed to the request, or not.
@@ -91,7 +99,9 @@ local function get_consent_request()
 end
 
 --------------------------------------------------------------------------------
--- HTTP METHOD DISPATCH
+--                              METHOD DISPATCH
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 --
 if method == "POST" then create_consent_request()
 elseif method == "GET" then get_consent_request()
