@@ -46,24 +46,28 @@ local db = database:init_db(config.datastore_path)
 --------------------------------------------------------------------------------
 --
 function data.insert_consent_request (id, service, email_hash)
-   return db:exec([[INSERT INTO consent_requests
-     (id, service_name, email_hash, agreed)
-     VALUES (?, ?, ?, FALSE);
-   ]], id, service, email_hash)
+   local result = db:exec([[INSERT INTO consent_requests
+     (id, service_name, email_hash, agreed) VALUES (?, ?, ?, FALSE);
+     ]], id, service, email_hash)[1]
+
+   return result and result["rows inserted"] or 0
 end
 
 --------------------------------------------------------------------------------
 --
 function data.get_consent_request (id)
-   return db:exec([[SELECT * FROM consent_requests WHERE id = ?;]], id)[1]
+   return db:exec([[SELECT * FROM consent_requests
+     WHERE id = ?;]], id)[1]
 end
 
 --------------------------------------------------------------------------------
 --
 function data.approve_consent_request (id)
-   return db:exec([[UPDATE consent_requests
+   local result = db:exec([[UPDATE consent_requests
      SET agreed = TRUE, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?;]], id)
+     WHERE id = ?;]], id)[1]
+
+   return result and result["rows updated"] or 0
 end
 
 return data

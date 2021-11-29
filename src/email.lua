@@ -63,7 +63,8 @@ function email.process_unread_emails ()
             logerr("ERROR: Unknow error when approving requests", resolved)
             return nil
          end
-         count = count + (resolved[1] or 0)
+
+         count = count + resolved
       end
    end
 

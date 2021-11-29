@@ -60,6 +60,14 @@ local migrations = {
              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL);
       ]]},
       down        = {"DROP TABLE IF EXISTS consent_requests;"}
+   },
+
+   [3] = {
+      id          = 3,
+      date        = "2021-11-29T20:00:00Z",
+      description = "Enable automatic changed record count",
+      up          = {"PRAGMA count_changes = TRUE"},
+      down        = {"PRAGMA count_changes = FALSE"}
    }
 }
 
