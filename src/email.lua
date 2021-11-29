@@ -56,8 +56,11 @@ function email.process_unread_emails ()
          "INBOX;UID="..unseen_email_id.."/;SECTION=HEADER.FIELDS%20(SUBJECT)")
       if not email_subject then return nil end
 
-      local request_id = ngx.re.match(email_subject, "\\[([a-fA-F0-9]{16})\\]", "joix")[1]
-      if request_id then
+      local request_id_matches = ngx.re.match(
+         email_subject, "\\[([a-fA-F0-9]{16})\\]", "joix")
+
+      if request_id_matches and #request_id_matches > 0 then
+         local request_id = request_id_matches[1]
          local resolved = data.approve_consent_request(request_id)
          if not resolved then
             logerr("ERROR: Unknow error when approving requests", resolved)
