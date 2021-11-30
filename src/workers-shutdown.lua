@@ -33,7 +33,7 @@ local data = require "src/data"
 --
 local function database_connection_cleanup ()
    utils.log("Closing database connection...")
-   data:close_db()
+   data:cleanup()
 end
 
 database_connection_cleanup()

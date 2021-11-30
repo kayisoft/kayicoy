@@ -70,4 +70,10 @@ function data.approve_consent_request (id)
    return result and result["rows updated"] or 0
 end
 
+--------------------------------------------------------------------------------
+--
+function data.cleanup ()
+   return db:close_db()
+end
+
 return data
