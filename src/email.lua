@@ -46,14 +46,14 @@ local log = utils.log
 function email.process_unread_emails ()
    -- Check for Unread Emails ----------------------------------
    log("Checking Emails...")
-   local unseen_emails = email.run_imap_command("INBOX?UNSEEN")
+   local unseen_emails = email.run_imap_command("/INBOX", "UID SEARCH UNSEEN")
    if not unseen_emails then return nil end
    local count = 0
 
    -- Process New Emails ---------------------------------------
    for unseen_email_id in unseen_emails:gmatch("[0-9]+") do
       local email_subject = email.run_imap_command(
-         "INBOX;UID="..unseen_email_id.."/;SECTION=HEADER.FIELDS%20(SUBJECT)")
+         "/INBOX;UID="..unseen_email_id.."/;SECTION=HEADER.FIELDS%20(SUBJECT)")
       if not email_subject then return nil end
 
       local request_id_matches = ngx.re.match(
@@ -146,12 +146,18 @@ end
 -- This function accepts URL-based cURL IMAP commands, _not_ pure IMAP
 -- commands. For example: `INBOX;UID=12/;SECTION=HEADER.FIELDS%20(SUBJECT)'
 --
-function email.run_imap_command (url_command)
+function email.run_imap_command (url, request)
    local q = utils.quote_shell_arg
    local curl_command = {
-      "curl", "--silent", "--url", q(config.imap_server.."/"..url_command),
+      "curl", "--silent",
+      "--url", q(config.imap_server..url),
       "--user", q(config.imap_credentials)
    }
+
+   if request and #request > 0 then
+      table.insert (curl_command, "--request")
+      table.insert (curl_command, q(request))
+   end
 
    local command = table.concat(curl_command, " ")
    local timeout = 10000  -- 10 seconds
