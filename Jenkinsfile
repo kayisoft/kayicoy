@@ -23,7 +23,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Kayicoy. If not, see <https://www.gnu.org/licenses/>.
 
+def new_image
+
 pipeline {
+  environment {
+    image_name = "connected/kayicoy"
+  }
+
   agent {
     kubernetes {
       label  "docker-${UUID.randomUUID().toString()}"
@@ -31,23 +37,26 @@ pipeline {
       inheritFrom 'docker'
     }
   }
+
   stages {
+    stage('fetch') { steps { checkout scm } }
+
     stage('build') {
       steps {
-        container('docker') {
-          script {
-            checkout scm
-            docker.withRegistry('http://127.0.0.1:34776', 'rancher-docker-registry') {
-              def customImage = docker.build("connected/kayicoy:${GIT_COMMIT.take(7)}")
-              customImage.push()
-              if (GIT_BRANCH == 'master') {
-                customImage.push('latest')
-              } else if (GIT_BRANCH) {
-                customImage.push(GIT_BRANCH.replace('/', '_'))
-              } else if (GIT_TAG) {
-                customImage.push(GIT_TAG)
-              }
-            }
+        script {
+          new_image = docker.build("${env.image_name}:${GIT_COMMIT.take(7)}")
+        }
+      }
+    }
+
+    stage('push') {
+      steps {
+        script {
+          docker.withRegistry("${REGISTRY_URL}", "${REGISTRY_CREDENTIALS}") {
+            new_image.push()
+            if (GIT_BRANCH == 'master') { new_image.push('latest') }
+            else if (GIT_BRANCH) { new_image.push(GIT_BRANCH.replace('/', '_')) }
+            else if (GIT_TAG) { new_image.push(GIT_TAG) }
           }
         }
       }
