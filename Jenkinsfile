@@ -30,13 +30,7 @@ pipeline {
     image_name = "connected/kayicoy"
   }
 
-  agent {
-    kubernetes {
-      label  "docker-${UUID.randomUUID().toString()}"
-      defaultContainer 'docker'
-      inheritFrom 'docker'
-    }
-  }
+  agent any
 
   stages {
     stage('fetch') { steps { checkout scm } }
